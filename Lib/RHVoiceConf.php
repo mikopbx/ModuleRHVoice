@@ -9,15 +9,12 @@
 
 namespace Modules\ModuleRHVoice\Lib;
 
-use MikoPBX\Common\Models\PbxSettings;
 use MikoPBX\Core\System\Configs\CronConf;
 use MikoPBX\Core\System\Processes;
 use MikoPBX\Core\System\Util;
-use MikoPBX\Core\Workers\Cron\WorkerSafeScriptsCore;
 use MikoPBX\Modules\Config\ConfigClass;
 use MikoPBX\Modules\PbxExtensionUtils;
 use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
-use Modules\ModuleAutoprovision\Lib\WorkerProvisioningServerPnP;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 
 class RHVoiceConf extends ConfigClass
@@ -89,9 +86,9 @@ class RHVoiceConf extends ConfigClass
     /**
      * Добавление задач в crond.
      *
-     * @param $tasks
+     * @param array $tasks
      */
-    public function createCronTasks(&$tasks): void
+    public function createCronTasks(array &$tasks): void
     {
         if ( ! is_array($tasks)) {
             return;
