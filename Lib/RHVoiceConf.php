@@ -119,8 +119,8 @@ class RHVoiceConf extends ConfigClass
     private function getPidContainer():string{
         $binDir = $this->getBinDir();
         $grep   = Util::which('grep');
-        $busybox   = Util::which('busybox');
-        Processes::mwExec($binDir . DIRECTORY_SEPARATOR. "docker ps | {$grep} aculeasis/rhvoice-rest |{$busybox} awk  '{ print $1}'", $out);
+        $awk   = Util::which('awk');
+        Processes::mwExec($binDir . DIRECTORY_SEPARATOR. "docker ps | $grep aculeasis/rhvoice-rest |$awk  '{ print $1}'", $out);
         return implode('', $out);
     }
 
