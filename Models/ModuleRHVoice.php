@@ -49,39 +49,12 @@ class ModuleRHVoice extends ModulesModelsBase
      */
     public static function getDynamicRelations(&$calledModelObject): void
     {
-        if (is_a($calledModelObject, Providers::class)) {
-            $calledModelObject->belongsTo(
-                'id',
-                ModuleRHVoice::class,
-                'dropdown_field',
-                [
-                    'alias'      => 'ModuleRHVoiceProvider',
-                    'foreignKey' => [
-                        'allowNulls' => 0,
-                        'message'    => 'Models\ModuleRHVoiceProvider',
-                        'action'     => Relation::ACTION_RESTRICT
-                        // запретить удалять провайдера если есть ссылки в модуле
-                    ],
-                ]
-            );
-        }
+
     }
 
     public function initialize(): void
     {
         $this->setSource('m_ModuleRHVoice');
-        $this->hasOne(
-            'dropdown_field',
-            Providers::class,
-            'id',
-            [
-                'alias'      => 'Providers',
-                'foreignKey' => [
-                    'allowNulls' => true,
-                    'action'     => Relation::NO_ACTION,
-                ],
-            ]
-        );
         parent::initialize();
     }
 
