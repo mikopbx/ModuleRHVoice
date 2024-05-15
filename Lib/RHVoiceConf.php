@@ -9,7 +9,6 @@
 
 namespace Modules\ModuleRHVoice\Lib;
 
-use MikoPBX\Common\Models\PbxSettings;
 use MikoPBX\Core\System\Configs\CronConf;
 use MikoPBX\Core\System\Processes;
 use MikoPBX\Core\System\Util;
@@ -17,8 +16,9 @@ use MikoPBX\Core\Workers\Cron\WorkerSafeScriptsCore;
 use MikoPBX\Modules\Config\ConfigClass;
 use MikoPBX\Modules\PbxExtensionUtils;
 use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
-use Modules\ModuleAutoprovision\Lib\WorkerProvisioningServerPnP;
+use Modules\ModuleRHVoice\bin\AmiConfClient;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
+use Phalcon\Text;
 
 class RHVoiceConf extends ConfigClass
 {
@@ -45,10 +45,10 @@ class RHVoiceConf extends ConfigClass
     public function getModuleWorkers(): array
     {
         return [
-//            [
-//                'type'   => WorkerSafeScriptsCore::CHECK_BY_AMI,
-//                'worker' => AmiConfClient::class,
-//            ],
+            [
+                'type'   => WorkerSafeScriptsCore::CHECK_BY_AMI,
+                'worker' => AmiConfClient::class,
+            ],
         ];
     }
 
@@ -61,7 +61,7 @@ class RHVoiceConf extends ConfigClass
     {
         $conf = "exten => _**XXXX,1,NoOp(---)" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${alert}\" == \"1\" ]?Goto(start_conf))" . PHP_EOL .
-            "    same => n,AGI($this->moduleDir/bin/AmiConfClient.php,enter_pin)" . PHP_EOL .
+            "    same => n,AGI($this->moduleDir/agi-bin/alertScript.php,enter_pin)" . PHP_EOL .
             "    same => n,Read(pin,beep,3)" . PHP_EOL .
             "    same => n,Set(dbPin=\${DB(CB_PINS/\${EXTEN:2})})" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${pin}\" != \"\${dbPin}\" ]?Playback(beep))" . PHP_EOL .
@@ -92,7 +92,7 @@ class RHVoiceConf extends ConfigClass
             "    same => n,Hangup()" . PHP_EOL .
             PHP_EOL .
             "exten => _***XXXX,1,NoOp()" . PHP_EOL .
-            "    same => n,AGI($this->moduleDir/bin/AmiConfClient.php,menu)";
+            "    same => n,AGI($this->moduleDir/agi-bin/alertScript.php,menu)";
 
         return $conf;
     }
@@ -153,12 +153,12 @@ class RHVoiceConf extends ConfigClass
      */
     public function createCronTasks(&$tasks): void
     {
-        if ( ! is_array($tasks)) {
-            return;
-        }
-        $workerPath = $this->moduleDir.DIRECTORY_SEPARATOR.'bin'.DIRECTORY_SEPARATOR.'safeScript.php';
-        $phpPath = Util::which('php');
-        $tasks[]      = "*/1 * * * * {$phpPath} -f {$workerPath} > /dev/null 2> /dev/null\n";
+//        if ( ! is_array($tasks)) {
+//            return;
+//        }
+//        $workerPath = $this->moduleDir.DIRECTORY_SEPARATOR.'bin'.DIRECTORY_SEPARATOR.'safeScript.php';
+//        $phpPath = Util::which('php');
+//        $tasks[]      = "*/1 * * * * $phpPath -f $workerPath > /dev/null 2> /dev/null\n";
     }
 
     /**
@@ -183,7 +183,7 @@ class RHVoiceConf extends ConfigClass
         $binDir = $this->getBinDir();
         $grep   = Util::which('grep');
         $busybox   = Util::which('busybox');
-        Processes::mwExec($binDir . DIRECTORY_SEPARATOR. "docker ps | {$grep} aculeasis/rhvoice-rest |{$busybox} awk  '{ print $1}'", $out);
+        Processes::mwExec($binDir . DIRECTORY_SEPARATOR. "docker ps | $grep aculeasis/rhvoice-rest | $busybox awk  '{ print $1}'", $out);
         return implode('', $out);
     }
 
@@ -203,32 +203,19 @@ class RHVoiceConf extends ConfigClass
         $workerPid = Processes::getPidOfProcess(AmiConfClient::class);
         if($moduleEnabled === true){
             $this->onAfterModuleEnable();
-            $am       = Util::getAstManager();
-            $res_ping = $am->pingAMIListener(Text::camelize("ping_".AmiConfClient::class, '\\'));
-            if (false === $res_ping) {
-                if(!empty($workerPid)){
-                    shell_exec("kill -9 $workerPid");
-                }
-                Processes::mwExecBg("$this->moduleDir/bin/AmiConfClient.php start");
-            }
+//            $am       = Util::getAstManager();
+//            $res_ping = $am->pingAMIListener(Text::camelize("ping_".AmiConfClient::class, '\\'));
+//            if (false === $res_ping) {
+//                if(!empty($workerPid)){
+//                    shell_exec("kill -9 $workerPid");
+//                }
+//                Processes::mwExecBg("$this->moduleDir/bin/AmiConfClient.php start");
+//            }
         }else{
             if(!empty($workerPid)){
                 shell_exec("kill $workerPid");
             }
             $this->onAfterModuleDisable();
         }
-    }
-
-    /**
-     * Prepares additional contexts sections in the extensions.conf file
-     *
-     * @return string
-     */
-    public function extensionGenContexts(): string
-    {
-        return
-            '[rh-Voice-conf-alert]'.PHP_EOL.
-            'exten => _[0-9*#+]!,1,Answer()'.PHP_EOL.
-            'exten => _[0-9*#+]!,n,Goto(conference-rooms,${EXTEN},16)'.PHP_EOL;
     }
 }
