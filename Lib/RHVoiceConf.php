@@ -18,7 +18,6 @@ use MikoPBX\Modules\PbxExtensionUtils;
 use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
 use Modules\ModuleRHVoice\bin\AmiConfClient;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
-use Phalcon\Text;
 
 class RHVoiceConf extends ConfigClass
 {
@@ -26,9 +25,9 @@ class RHVoiceConf extends ConfigClass
     /**
      * Receive information about mikopbx main database changes
      *
-     * @param $data
+     * @param mixed $data
      */
-    public function modelsEventChangeData($data): void
+    public function modelsEventChangeData(mixed $data): void
     {
         if ($data['model'] === ModuleRHVoice::class)
         {

@@ -12,8 +12,6 @@ use MikoPBX\Core\Asterisk\AsteriskManager;
 use MikoPBX\Core\System\Processes;
 use MikoPBX\Core\Workers\WorkerBase;
 use MikoPBX\Core\System\Util;
-use MikoPBX\Core\Asterisk\AGI;
-use MikoPBX\Common\Models\Extensions;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 
 class AmiConfClient extends WorkerBase
