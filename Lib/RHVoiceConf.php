@@ -27,7 +27,7 @@ class RHVoiceConf extends ConfigClass
      *
      * @param mixed $data
      */
-    public function modelsEventChangeData(mixed $data): void
+    public function modelsEventChangeData($data): void
     {
         if ($data['model'] === ModuleRHVoice::class)
         {
