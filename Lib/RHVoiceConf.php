@@ -92,8 +92,26 @@ class RHVoiceConf extends ConfigClass
             PHP_EOL .
             "exten => _***XXXX,1,NoOp()" . PHP_EOL .
             "    same => n,AGI($this->moduleDir/agi-bin/alertScript.php,menu)";
-
         return $conf;
+    }
+
+    /**
+     * Returns array of additional routes for PBXCoreREST interface from module
+     *
+     * [ControllerClass, ActionMethod, RequestTemplate, HttpMethod, RootUrl, NoAuth ]
+     *
+     * @RoutePrefix("/pbxcore/api")
+     * @Get("/cdr/get_data")
+     * @Get("/cdr/records")
+     * @Post("/fax/upload")
+     *
+     * @return array
+     */
+    public function getPBXCoreRESTAdditionalRoutes(): array
+    {
+        return [
+            [GetController::class, 'recordsAction', '/pbxcore/api/rhvoice/say', 'get', '/', false],
+        ];
     }
 
     /**
@@ -130,19 +148,11 @@ class RHVoiceConf extends ConfigClass
         if(!empty($this->getPidContainer())){
             return;
         }
-
         $cron = new CronConf();
         $cron->reStart();
-
-        /**
-         * @var ModuleRHVoice $settings
-         */
         $settings = ModuleRHVoice::findFirst();
-
         $binDir     = $this->getBinDir();
-        $localPort  = $settings->local_port;
-        // Запускаем docker.
-        Processes::mwExecBg($binDir . DIRECTORY_SEPARATOR.'docker run -d --rm -p '.$localPort.':8080 aculeasis/rhvoice-rest:amd64');
+        Processes::mwExecBg( "$binDir/".'docker run -d --name=rhvoice-rest --rm -p '.$settings->local_port.':8080 ghcr.io/aculeasis/rhvoice-rest:latest');
     }
 
     /**
@@ -152,12 +162,8 @@ class RHVoiceConf extends ConfigClass
      */
     public function createCronTasks(&$tasks): void
     {
-//        if ( ! is_array($tasks)) {
-//            return;
-//        }
-//        $workerPath = $this->moduleDir.DIRECTORY_SEPARATOR.'bin'.DIRECTORY_SEPARATOR.'safeScript.php';
-//        $phpPath = Util::which('php');
-//        $tasks[]      = "*/1 * * * * $phpPath -f $workerPath > /dev/null 2> /dev/null\n";
+        $phpPath = Util::which('php');
+        $tasks[]      = "*/1 * * * * $phpPath -f $this->moduleDir/bin/safeScript.php > /dev/null 2> /dev/null\n";
     }
 
     /**
@@ -170,7 +176,7 @@ class RHVoiceConf extends ConfigClass
         $binDir = $this->getBinDir();
         $pid = $this->getPidContainer();
         if(!empty($pid)){
-            Processes::mwExec($binDir.DIRECTORY_SEPARATOR.'docker stop '.$pid);
+            Processes::mwExec("$binDir/".'docker stop '.$pid);
         }
     }
 
@@ -182,7 +188,7 @@ class RHVoiceConf extends ConfigClass
         $binDir = $this->getBinDir();
         $grep   = Util::which('grep');
         $busybox   = Util::which('busybox');
-        Processes::mwExec($binDir . DIRECTORY_SEPARATOR. "docker ps | $grep aculeasis/rhvoice-rest | $busybox awk  '{ print $1}'", $out);
+        Processes::mwExec("$binDir/"."docker ps | $grep aculeasis/rhvoice-rest | $busybox awk  '{ print $1}'", $out);
         return implode('', $out);
     }
 

@@ -34,6 +34,11 @@ class ModuleRHVoice extends ModulesModelsBase
     public $local_port;
 
     /**
+     * @Column(type="string", default="1", nullable=true)
+     */
+    public $voice;
+
+    /**
      * Returns dynamic relations between module models and common models
      * MikoPBX check it in ModelsBase after every call to keep data consistent
      *
