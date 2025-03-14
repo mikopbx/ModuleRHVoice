@@ -8,6 +8,7 @@
  */
 namespace Modules\ModuleRHVoice\App\Forms;
 
+use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 use Phalcon\Forms\Element\Select;
 use Phalcon\Forms\Element\TextArea;
 use Phalcon\Forms\Form;
@@ -28,35 +29,9 @@ class ModuleRHVoiceForm extends Form
             'defaultValue' => 8080,
         ]));
 
-        $arrConnType = [
-            'alan' => 'Alan (American English)',
-            'bdl' => 'Bdl (American English)',
-            'clb' => 'Clb (American English)',
-            'evgeniy-eng' => 'Evgeniy Eng (American English)',
-            'lyubov' => 'Lyubov (American English)',
-            'slt' => 'Slt (American English)',
-            'aleksandr' => 'Aleksandr (Russian)',
-            'aleksandr-hq' => 'Aleksandr Hq (Russian)',
-            'anna' => 'Anna (Russian)',
-            'arina' => 'Arina (Russian)',
-            'artemiy' => 'Artemiy (Russian)',
-            'elena' => 'Elena (Russian)',
-            'evgeniy-rus' => 'Evgeniy Rus (Russian)',
-            'irina' => 'Irina (Russian)',
-            'mikhail' => 'Mikhail (Russian)',
-            'pavel' => 'Pavel (Russian)',
-            'tatiana' => 'Tatiana (Russian)',
-            'timofey' => 'Timofey (Russian)',
-            'umka' => 'Umka (Russian)',
-            'victoria' => 'Victoria (Russian)',
-            'vitaliy' => 'Vitaliy (Russian)',
-            'vitaliy-ng' => 'Vitaliy Ng (Russian)',
-            'vsevolod' => 'Vsevolod (Russian)',
-            'yuriy' => 'Yuriy (Russian)'
-        ];
         $library = new Select(
             'voice',
-            $arrConnType,
+            ModuleRHVoice::getSelectVoiceData(),
             [
                 'using'    => [
                     'id',
@@ -64,7 +39,7 @@ class ModuleRHVoiceForm extends Form
                 ],
                 'useEmpty' => false,
                 'value'    => $entity->voice,
-                'class'    => 'ui selection dropdown library-type-select',
+                'class'    => 'ui search selection dropdown library-type-select',
             ]
         );
         $this->add($library);
