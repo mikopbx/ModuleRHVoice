@@ -23,7 +23,7 @@ class GetController extends BaseController
     {
         try {
             $settings = ModuleRHVoice::findFirst();
-            if(empty($settings->local_port)){
+            if(!$settings || empty($settings->local_port)){
                 $this->sendError(503);
                 return;
             }

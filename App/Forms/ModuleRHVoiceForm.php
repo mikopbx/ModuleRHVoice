@@ -63,7 +63,7 @@ class ModuleRHVoiceForm extends Form
                     'name',
                 ],
                 'useEmpty' => false,
-                'value'    => $entity->$key,
+                'value'    => $entity->voice,
                 'class'    => 'ui selection dropdown library-type-select',
             ]
         );
