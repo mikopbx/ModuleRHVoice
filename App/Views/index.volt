@@ -9,6 +9,10 @@
         <label>{{ t._('modulerh_voice') }}</label>
         {{ form.render('voice') }}
     </div>
+    <div class="ten wide field">
+        <label>{{ t._('modulerh_rate') }}</label>
+        {{ form.render('rate') }}
+    </div>
 
     <div class="ten wide field">
         <label>{{ t._('modulerh_text') }}</label>

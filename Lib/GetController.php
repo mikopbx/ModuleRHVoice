@@ -35,6 +35,7 @@ class GetController extends BaseController
                 'text'   => $this->request->get('text'),
                 'voice'  => $this->request->get('voice'),
                 'format' => 'wav',
+                'rate'   => $settings->rate,
             ];
             $response = $client->get('/say', [
                 'query' => $queryParams,

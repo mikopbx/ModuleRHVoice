@@ -29,6 +29,12 @@ class ModuleRHVoiceForm extends Form
             'defaultValue' => 8080,
         ]));
 
+        $this->add(new Numeric('rate', [
+            'maxlength'    => 3,
+            'style'        => 'width: 120px;',
+            'defaultValue' => 40,
+        ]));
+
         $library = new Select(
             'voice',
             ModuleRHVoice::getSelectVoiceData(),

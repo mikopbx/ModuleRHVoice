@@ -108,6 +108,11 @@ class ModuleRHVoice extends ModulesModelsBase
     public $voice;
 
     /**
+     * @Column(type="string", default="40", nullable=true)
+     */
+    public $rate = "40";
+
+    /**
      * Returns dynamic relations between module models and common models
      * MikoPBX check it in ModelsBase after every call to keep data consistent
      *
