@@ -63,7 +63,8 @@ class AmiConfClient extends WorkerBase
     public function callback($parameters):void{
         global $argv;
 
-        if(stripos($parameters['Channel'], 'PJSIP') === false){
+        if( stripos($parameters['Channel'], 'PJSIP') === false ||
+            $parameters['Context'] === 'selector-meeting'){
             return;
         }
         if($parameters['BridgeNumChannels'] === '3'){
