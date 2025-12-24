@@ -23,4 +23,8 @@ return [
     'modulerh_voiceConnected'             => 'Модуль подключен',
     'modulerh_voiceDisconnected'          => 'Модуль отключен',
     'modulerh_voiceUpdateStatus'          => 'Обновление статуса',
+    'modulerh_voice'                      => 'Диктор',
+    'modulerh_text'                       => 'Текст для генерации',
+    'modulerh_download'                   => 'Создать и скачать',
+    'rate'                                => 'Темп речи',
 ];

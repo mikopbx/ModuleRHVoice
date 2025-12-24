@@ -14,12 +14,79 @@
 
 namespace Modules\ModuleRHVoice\Models;
 
-use MikoPBX\Common\Models\Providers;
 use MikoPBX\Modules\Models\ModulesModelsBase;
-use Phalcon\Mvc\Model\Relation;
 
 class ModuleRHVoice extends ModulesModelsBase
 {
+    public const VOICE_DATA = [
+        'alan' => ['Alan (American English)', 'en-US'],
+        'bdl' => ['Bdl (American English)', 'en-US'],
+        'clb' => ['Clb (American English)', 'en-US'],
+        'evgeniy-eng' => ['Evgeniy-eng (American English)', 'en-US'],
+        'lyubov' => ['Lyubov (American English)', 'en-US'],
+        'slt' => ['Slt (American English)', 'en-US'],
+
+        'aleksandr' => ['Aleksandr (Russian)', 'ru-RU'],
+        'aleksandr-hq' => ['Aleksandr-hq (Russian)', 'ru-RU'],
+        'anna' => ['Anna (Russian)', 'ru-RU'],
+        'arina' => ['Arina (Russian)', 'ru-RU'],
+        'artemiy' => ['Artemiy (Russian)', 'ru-RU'],
+        'elena' => ['Elena (Russian)', 'ru-RU'],
+        'evgeniy-rus' => ['Evgeniy-rus (Russian)', 'ru-RU'],
+        'irina' => ['Irina (Russian)', 'ru-RU'],
+        'mikhail' => ['Mikhail (Russian)', 'ru-RU'],
+        'pavel' => ['Pavel (Russian)', 'ru-RU'],
+        'tatiana' => ['Tatiana (Russian)', 'ru-RU'],
+        'timofey' => ['Timofey (Russian)', 'ru-RU'],
+        'umka' => ['Umka (Russian)', 'ru-RU'],
+        'victoria' => ['Victoria (Russian)', 'ru-RU'],
+        'vitaliy' => ['Vitaliy (Russian)', 'ru-RU'],
+        'vitaliy-ng' => ['Vitaliy-ng (Russian)', 'ru-RU'],
+        'vsevolod' => ['Vsevolod (Russian)', 'ru-RU'],
+        'yuriy' => ['Yuriy (Russian)', 'ru-RU'],
+
+        'alicja' => ['Alicja (Polish)', 'pl-PL'],
+        'cezary' => ['Cezary (Polish)', 'pl-PL'],
+        'magda' => ['Magda (Polish)', 'pl-PL'],
+        'michal' => ['Michal (Polish)', 'pl-PL'],
+        'natan' => ['Natan (Polish)', 'pl-PL'],
+
+        /*'anatol' => ['Anatol (Ukrainian)', 'uk-UA'],
+        'marianna' => ['Marianna (Ukrainian)', 'uk-UA'],
+        'natalia' => ['Natalia (Ukrainian)', 'uk-UA'],
+        'volodymyr' => ['Volodymyr (Ukrainian)', 'uk-UA'],*/
+
+        'azamat' => ['Azamat (Kyrgyz)', 'ky-KG'],
+        'nazgul' => ['Nazgul (Kyrgyz)', 'ky-KG'],
+
+        'hana' => ['Hana (Albanian)', 'sq-AL'],
+
+        'kiko' => ['Kiko (Macedonian)', 'mk-MK'],
+        'suze' => ['Suze (Macedonian)', 'mk-MK'],
+
+        'letícia-f123' => ['Letícia-f123 (Brazilian Portuguese)', 'pt-BR'],
+        'natia' => ['Natia (Georgian)', 'ka-GE'],
+        'ondro' => ['Ondro (Slovak)', 'sk-SK'],
+        'sevinch' => ['Sevinch (Uzbek)', 'uz-UZ'],
+        'talgat' => ['Talgat (Tatar)', 'tt-RU'],
+        'zdenek' => ['Zdenek (Czech)', 'cs-CZ'],
+    ];
+
+    /**
+     * @param bool $keyIsCode
+     * @return array
+     */
+    public static function getSelectVoiceData(bool $keyIsCode = false):array {
+        $result = [];
+        foreach (self::VOICE_DATA as $key => [$name, $langCode]) {
+            if($keyIsCode) {
+                $result[strtolower($langCode)][] = $key;
+            }else{
+                $result[$key] = $name;
+            }
+        }
+        return $result;
+    }
 
     /**
      * @Primary
@@ -36,6 +103,16 @@ class ModuleRHVoice extends ModulesModelsBase
     public $local_port;
 
     /**
+     * @Column(type="string", default="1", nullable=true)
+     */
+    public $voice;
+
+    /**
+     * @Column(type="string", default="40", nullable=true)
+     */
+    public $rate = "40";
+
+    /**
      * Returns dynamic relations between module models and common models
      * MikoPBX check it in ModelsBase after every call to keep data consistent
      *
@@ -49,39 +126,12 @@ class ModuleRHVoice extends ModulesModelsBase
      */
     public static function getDynamicRelations(&$calledModelObject): void
     {
-        if (is_a($calledModelObject, Providers::class)) {
-            $calledModelObject->belongsTo(
-                'id',
-                ModuleRHVoice::class,
-                'dropdown_field',
-                [
-                    'alias'      => 'ModuleRHVoiceProvider',
-                    'foreignKey' => [
-                        'allowNulls' => 0,
-                        'message'    => 'Models\ModuleRHVoiceProvider',
-                        'action'     => Relation::ACTION_RESTRICT
-                        // запретить удалять провайдера если есть ссылки в модуле
-                    ],
-                ]
-            );
-        }
+
     }
 
     public function initialize(): void
     {
         $this->setSource('m_ModuleRHVoice');
-        $this->hasOne(
-            'dropdown_field',
-            Providers::class,
-            'id',
-            [
-                'alias'      => 'Providers',
-                'foreignKey' => [
-                    'allowNulls' => true,
-                    'action'     => Relation::NO_ACTION,
-                ],
-            ]
-        );
         parent::initialize();
     }
 

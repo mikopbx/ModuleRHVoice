@@ -58,6 +58,26 @@ const ModuleRHVoice = {
 		ModuleRHVoice.checkStatusToggle();
 		window.addEventListener('ModuleStatusChanged', ModuleRHVoice.checkStatusToggle);
 		ModuleRHVoice.initializeForm();
+
+		$('#download-button').on('click', function () {
+			let text = ModuleRHVoice.$formObj.form('get value', 'text');
+			if (!text || text.trim() === '') {
+				return;
+			}
+			let voice = ModuleRHVoice.$formObj.form('get value', 'voice');
+			let baseUrl = '/pbxcore/api/rhvoice/say';
+			let queryParams = new URLSearchParams({
+				text: text,
+				voice: voice
+			}).toString();
+			let url = `${baseUrl}?${queryParams}`;
+			console.log(url);
+			if (url) {
+				window.open(url, '_blank');
+			} else {
+				console.error('URL не указан');
+			}
+		});
 	},
 	/**
 	 * Change some form elements classes depends of module status

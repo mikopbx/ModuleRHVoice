@@ -10,7 +10,6 @@ use MikoPBX\AdminCabinet\Controllers\BaseController;
 use MikoPBX\Modules\PbxExtensionUtils;
 use Modules\ModuleRHVoice\App\Forms\ModuleRHVoiceForm;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
-use MikoPBX\Common\Models\Providers;
 
 class ModuleRHVoiceController extends BaseController
 {
