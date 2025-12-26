@@ -110,7 +110,7 @@ class RHVoiceConf extends ConfigClass
     public function getPBXCoreRESTAdditionalRoutes(): array
     {
         return [
-            [GetController::class, 'recordsAction', '/pbxcore/api/rhvoice/say', 'get', '/', false],
+            [GetController::class, 'recordsAction', '/pbxcore/api/rhvoice/say', 'get', '/', true],
         ];
     }
 

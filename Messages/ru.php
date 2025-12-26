@@ -26,5 +26,5 @@ return [
     'modulerh_voice'                      => 'Диктор',
     'modulerh_text'                       => 'Текст для генерации',
     'modulerh_download'                   => 'Создать и скачать',
-    'rate'                                => 'Темп речи',
+    'modulerh_rate'                       => 'Темп речи',
 ];
