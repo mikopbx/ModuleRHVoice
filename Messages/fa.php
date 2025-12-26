@@ -25,5 +25,4 @@ return [
     'modulerh_voice' => '',
     'modulerh_text' => '',
     'modulerh_download' => '',
-    'rate' => '',
 ];
