@@ -61,12 +61,13 @@ class RHVoiceConf extends ConfigClass
     {
         $conf = "exten => _**XXXX,1,NoOp(---)" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${alert}\" == \"1\" ]?Goto(start_conf))" . PHP_EOL .
+            "    same => n,Set(dbPin=\${DB(CB_PINS/\${EXTEN:2})})" . PHP_EOL .
+            "    same => n,GotoIf(\$[ \"\${dbPin}\" == \"\" ]?skip_pin)" . PHP_EOL .
             "    same => n,AGI($this->moduleDir/agi-bin/alertScript.php,enter_pin)" . PHP_EOL .
             "    same => n,Read(pin,beep,3)" . PHP_EOL .
-            "    same => n,Set(dbPin=\${DB(CB_PINS/\${EXTEN:2})})" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${pin}\" != \"\${dbPin}\" ]?Playback(beep))" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${pin}\" != \"\${dbPin}\" ]?Hangup)" . PHP_EOL .
-            "    same => n,Set(bridgePeer=\${CHANNEL})" . PHP_EOL .
+            "    same => n(skip_pin),Set(bridgePeer=\${CHANNEL})" . PHP_EOL .
             "    same => n,Set(i=1)" . PHP_EOL .
             "    same => n,While(\$[\${i} < 10])" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${bridgePeer:0:5}\" != \"Local\" ]?ExitWhile())" . PHP_EOL .

@@ -66,16 +66,18 @@ class AmiConfClient extends WorkerBase
     public function callback($parameters):void{
         global $argv;
 
-        if( stripos($parameters['Channel'], 'PJSIP') === false ||
-            $parameters['Context'] === 'selector-meeting'){
-            return;
-        }
-        if($parameters['BridgeNumChannels'] === '3'){
+        // Оповещаем только о реальных абонентах (PJSIP). Служебные каналы конференции
+        // (CBAnn — анонсер, CBRec — запись, Local — наш же оповещающий канал) и
+        // комнаты селектора пропускаем — иначе лишние/зацикленные оповещения.
+        if( stripos($parameters['Channel'] ?? '', 'PJSIP') === false ||
+            ($parameters['Context'] ?? '') === 'selector-meeting'){
             return;
         }
         $script = dirname($argv[0], 2) ."/agi-bin/alertScript.php";
-        // Номер вошедшего (alertScript ищет экстеншн по номеру и берёт его callerid).
-        $callerNum = $parameters['CallerIDNum'] ?? '';
+        // Номер вошедшего: в интеграции MIKO он в CallerIDName
+        // (CallerIDNum может быть переопределён именем комнаты, напр. Conference_Room).
+        // alertScript ищет экстеншн по этому номеру и берёт его callerid.
+        $callerNum = $parameters['CallerIDName'] ?? '';
         try {
             // Типы важны: в ядре Originate() — ?int $priority/$timeout и bool $async.
             $this->am->Originate(
