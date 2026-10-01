@@ -8,6 +8,7 @@
 
 namespace Modules\ModuleRHVoice\Setup;
 
+use MikoPBX\Core\System\Util;
 use MikoPBX\Modules\Setup\PbxExtensionSetupBase;
 
 
@@ -50,6 +51,27 @@ class PbxExtensionSetup extends PbxExtensionSetupBase
     public function installFiles(): bool
     {
         return parent::installFiles();
+    }
+
+    /**
+     * Sets up ownerships and folder rights.
+     * Базовый метод выставляет +x только на agi-bin и bin, поэтому отдельно
+     * добавляем право исполнения нативным бинарникам RHVoice (по архитектурам).
+     *
+     * @return bool
+     */
+    public function fixFilesRights(): bool
+    {
+        $result = parent::fixFilesRights();
+
+        foreach (['x86_64', 'aarch64'] as $arch) {
+            $binDir = "{$this->moduleDir}/rhvoice/bin/{$arch}";
+            if (is_dir($binDir)) {
+                Util::addExecutableRights($binDir);
+            }
+        }
+
+        return $result;
     }
 
     /**

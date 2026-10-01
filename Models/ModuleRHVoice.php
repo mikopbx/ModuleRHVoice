@@ -103,7 +103,7 @@ class ModuleRHVoice extends ModulesModelsBase
     public $id;
 
     /**
-     * @Column(type="string", default="1", nullable=true)
+     * @Column(type="string", default="tatiana", nullable=true)
      */
     public $voice;
 

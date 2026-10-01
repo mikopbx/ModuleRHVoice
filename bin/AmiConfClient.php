@@ -16,6 +16,9 @@ use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 
 class AmiConfClient extends WorkerBase
 {
+    /** Встроенный голос, поставляется в комплекте модуля; используется как дефолт и фолбэк. */
+    public const DEFAULT_VOICE = 'tatiana';
+
     /** @var AsteriskManager $am */
     protected AsteriskManager $am;
 
@@ -103,7 +106,11 @@ class AmiConfClient extends WorkerBase
         /** @var ModuleRHVoice $settings */
         $settings = ModuleRHVoice::findFirst();
         if(empty($voice)){
-            $voice = ($settings && !empty($settings->voice)) ? $settings->voice : 'aleksandr';
+            $voice = ($settings && !empty($settings->voice)) ? $settings->voice : self::DEFAULT_VOICE;
+        }
+        // Если выбранный голос ещё не скачан — откатываемся на встроенный, чтобы синтез не падал.
+        if(!is_file($moduleDir.'/rhvoice/data/voices/'.$voice.'/voice.info')){
+            $voice = self::DEFAULT_VOICE;
         }
         $rate = ($settings && $settings->rate !== null && $settings->rate !== '') ? (int)$settings->rate : 40;
 
@@ -116,6 +123,10 @@ class AmiConfClient extends WorkerBase
             $arch   = php_uname('m'); // x86_64 | aarch64 — выбираем бинарник под архитектуру
             $rhvDir = $moduleDir.'/rhvoice';
             $bin    = "$rhvDir/bin/$arch/RHVoice-test";
+            // На случай, если установщик не сохранил бит исполнения.
+            if(!is_executable($bin)){
+                @chmod($bin, 0755);
+            }
 
             // Настройка темпа модуля 0..100 (50 — норма) повторяет логику rhvoice-rest:
             // absolute_rate = rate/50 - 1, далее переводим в относительный множитель для CLI.
