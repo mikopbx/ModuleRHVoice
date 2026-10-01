@@ -74,18 +74,27 @@ class AmiConfClient extends WorkerBase
             return;
         }
         $script = dirname($argv[0], 2) ."/agi-bin/alertScript.php";
-        $this->am->Originate(
-            "Local/**{$parameters['Conference']}@internal/n",
-            '',
-            '',
-            '',
-            'AGI',
-            "$script,alert,{$parameters['CallerIDName']}",
-            '30',
-            'ALERT',
-            'alert=1',
-            '',
-            '1');
+        // Номер вошедшего (alertScript ищет экстеншн по номеру и берёт его callerid).
+        $callerNum = $parameters['CallerIDNum'] ?? '';
+        try {
+            // Типы важны: в ядре Originate() — ?int $priority/$timeout и bool $async.
+            $this->am->Originate(
+                "Local/**{$parameters['Conference']}@internal/n",
+                null,                               // exten
+                null,                               // context
+                null,                               // priority (?int)
+                'AGI',                              // application
+                "$script,alert,{$callerNum}",       // data
+                30,                                 // timeout (int)
+                'ALERT',                            // callerid
+                'alert=1',                          // variable
+                null,                               // account
+                true                                // async (bool)
+            );
+        } catch (\Throwable $e) {
+            // Не роняем воркер из-за сбоя одного оповещения.
+            Util::sysLogMsg(self::class, 'Originate alert failed: '.$e->getMessage());
+        }
     }
 
     /**
