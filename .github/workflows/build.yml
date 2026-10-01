@@ -11,7 +11,7 @@ jobs:
   build:
     uses: mikopbx/.github-workflows/.github/workflows/extension-publish.yml@master
     with:
-      initial_version: "1.0"
+      initial_version: "1.11"
       # Build the native RHVoice engine for amd64 and arm64, then assemble the
       # rhvoice/ bundle (per-arch bin+lib, shared data/languages + preloaded voice, etc).
       # The archive action zips the working module/ dir, so everything placed here
