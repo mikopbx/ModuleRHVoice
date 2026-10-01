@@ -13,6 +13,8 @@ use MikoPBX\Core\System\Configs\CronConf;
 use MikoPBX\Core\System\Processes;
 use MikoPBX\Core\System\Util;
 use MikoPBX\Core\Workers\Cron\WorkerSafeScriptsCore;
+use MikoPBX\Core\Workers\WorkerModelsEvents;
+use MikoPBX\Core\Workers\Libs\WorkerModelsEvents\Actions\ReloadDialplanAction;
 use MikoPBX\Modules\Config\ConfigClass;
 use MikoPBX\Modules\PbxExtensionUtils;
 use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
@@ -34,6 +36,9 @@ class RHVoiceConf extends ConfigClass
         {
             $this->onAfterModuleDisable();
             $this->onAfterModuleEnable();
+            // Префиксы входа/администрирования и длина номера влияют на диалплан —
+            // перегенерируем extensions.conf и перезагружаем диалплан.
+            WorkerModelsEvents::invokeAction(ReloadDialplanAction::class);
         }
     }
 
