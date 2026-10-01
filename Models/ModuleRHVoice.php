@@ -18,14 +18,11 @@ use MikoPBX\Modules\Models\ModulesModelsBase;
 
 class ModuleRHVoice extends ModulesModelsBase
 {
+    /**
+     * Поддерживаемые голоса (только русский и узбекский).
+     * Языковые данные для них поставляются в составе модуля (rhvoice/data/languages).
+     */
     public const VOICE_DATA = [
-        'alan' => ['Alan (American English)', 'en-US'],
-        'bdl' => ['Bdl (American English)', 'en-US'],
-        'clb' => ['Clb (American English)', 'en-US'],
-        'evgeniy-eng' => ['Evgeniy-eng (American English)', 'en-US'],
-        'lyubov' => ['Lyubov (American English)', 'en-US'],
-        'slt' => ['Slt (American English)', 'en-US'],
-
         'aleksandr' => ['Aleksandr (Russian)', 'ru-RU'],
         'aleksandr-hq' => ['Aleksandr-hq (Russian)', 'ru-RU'],
         'anna' => ['Anna (Russian)', 'ru-RU'],
@@ -45,32 +42,42 @@ class ModuleRHVoice extends ModulesModelsBase
         'vsevolod' => ['Vsevolod (Russian)', 'ru-RU'],
         'yuriy' => ['Yuriy (Russian)', 'ru-RU'],
 
-        'alicja' => ['Alicja (Polish)', 'pl-PL'],
-        'cezary' => ['Cezary (Polish)', 'pl-PL'],
-        'magda' => ['Magda (Polish)', 'pl-PL'],
-        'michal' => ['Michal (Polish)', 'pl-PL'],
-        'natan' => ['Natan (Polish)', 'pl-PL'],
-
-        /*'anatol' => ['Anatol (Ukrainian)', 'uk-UA'],
-        'marianna' => ['Marianna (Ukrainian)', 'uk-UA'],
-        'natalia' => ['Natalia (Ukrainian)', 'uk-UA'],
-        'volodymyr' => ['Volodymyr (Ukrainian)', 'uk-UA'],*/
-
-        'azamat' => ['Azamat (Kyrgyz)', 'ky-KG'],
-        'nazgul' => ['Nazgul (Kyrgyz)', 'ky-KG'],
-
-        'hana' => ['Hana (Albanian)', 'sq-AL'],
-
-        'kiko' => ['Kiko (Macedonian)', 'mk-MK'],
-        'suze' => ['Suze (Macedonian)', 'mk-MK'],
-
-        'letícia-f123' => ['Letícia-f123 (Brazilian Portuguese)', 'pt-BR'],
-        'natia' => ['Natia (Georgian)', 'ka-GE'],
-        'ondro' => ['Ondro (Slovak)', 'sk-SK'],
         'sevinch' => ['Sevinch (Uzbek)', 'uz-UZ'],
-        'talgat' => ['Talgat (Tatar)', 'tt-RU'],
-        'zdenek' => ['Zdenek (Czech)', 'cs-CZ'],
     ];
+
+    /**
+     * Карта «ключ голоса → GitHub-репозиторий» для докачки по запросу.
+     * Владелец org регистронезависим на GitHub.
+     */
+    public const VOICE_REPO = [
+        'aleksandr'    => 'RHVoice/aleksandr-rus',
+        'aleksandr-hq' => 'RHVoice/aleksandr-hq-rus',
+        'anna'         => 'RHVoice/anna-rus',
+        'arina'        => 'RHVoice/arina-rus',
+        'artemiy'      => 'RHVoice/artemiy-rus',
+        'elena'        => 'RHVoice/elena-rus',
+        'evgeniy-rus'  => 'RHVoice/evgeniy-rus',
+        'irina'        => 'RHVoice/irina-rus',
+        'mikhail'      => 'RHVoice/mikhail-rus',
+        'pavel'        => 'RHVoice/pavel-rus',
+        'tatiana'      => 'RHVoice/tatiana-rus',
+        'timofey'      => 'RHVoice/timofey-rus',
+        'umka'         => 'RHVoice/umka-rus',
+        'victoria'     => 'RHVoice/victoria-rus',
+        'vitaliy'      => 'RHVoice/vitaliy-rus',
+        'vitaliy-ng'   => 'RHVoice/vitaliy-ng-rus',
+        'vsevolod'     => 'RHVoice/vsevolod-rus',
+        'yuriy'        => 'RHVoice/yuriy-rus',
+        'sevinch'      => 'RHVoice/Sevinch-uzb',
+    ];
+
+    /**
+     * Возвращает GitHub-репозиторий голоса (owner/repo) или '' если голос неизвестен.
+     */
+    public static function getVoiceRepo(string $voice): string
+    {
+        return self::VOICE_REPO[$voice] ?? '';
+    }
 
     /**
      * @param bool $keyIsCode
@@ -94,13 +101,6 @@ class ModuleRHVoice extends ModulesModelsBase
      * @Column(type="integer", nullable=false)
      */
     public $id;
-
-    /**
-     * Integer field example
-     *
-     * @Column(type="integer", default="1", nullable=true)
-     */
-    public $local_port;
 
     /**
      * @Column(type="string", default="1", nullable=true)

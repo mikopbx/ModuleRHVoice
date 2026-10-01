@@ -15,6 +15,7 @@ const ModuleRHVoice = {
 	$disabilityFields: $('#modulerh-voice-form  .disability'),
 	$statusToggle: $('#module-status-toggle'),
 	$moduleStatus: $('#status'),
+	installedVoices: [],
 	/**
 	 * Field validation rules
 	 * https://semantic-ui.com/behaviors/form.html
@@ -59,24 +60,213 @@ const ModuleRHVoice = {
 		window.addEventListener('ModuleStatusChanged', ModuleRHVoice.checkStatusToggle);
 		ModuleRHVoice.initializeForm();
 
-		$('#download-button').on('click', function () {
-			let text = ModuleRHVoice.$formObj.form('get value', 'text');
-			if (!text || text.trim() === '') {
+		// Докачка голосов по запросу.
+		ModuleRHVoice.installedVoices = ModuleRHVoice.readInstalledVoices();
+		$('#modulerh-voice-form .library-type-select').dropdown({
+			onChange() {
+				ModuleRHVoice.updateVoiceState();
+			},
+		});
+		ModuleRHVoice.updateVoiceState();
+		ModuleRHVoice.decorateDropdown();
+		$('#download-voice-button').on('click', ModuleRHVoice.downloadSelectedVoice);
+
+		// Прослушать сгенерированный файл прямо на странице.
+		$('#play-button').on('click', function () {
+			const url = ModuleRHVoice.buildSayUrl();
+			if (!url) {
 				return;
 			}
-			let voice = ModuleRHVoice.$formObj.form('get value', 'voice');
-			let baseUrl = '/pbxcore/api/rhvoice/say';
-			let queryParams = new URLSearchParams({
-				text: text,
-				voice: voice
-			}).toString();
-			let url = `${baseUrl}?${queryParams}`;
-			console.log(url);
-			if (url) {
-				window.open(url, '_blank');
-			} else {
-				console.error('URL не указан');
+			const audio = document.getElementById('tts-audio');
+			$('#tts-audio').show();
+			audio.src = url;
+			const p = audio.play();
+			if (p && typeof p.catch === 'function') {
+				p.catch(() => {});
 			}
+		});
+
+		// Скачать сгенерированный файл.
+		$('#download-button').on('click', function () {
+			const url = ModuleRHVoice.buildSayUrl();
+			if (url) {
+				window.open(`${url}&dl=1`, '_blank');
+			}
+		});
+	},
+	/**
+	 * Builds the /say URL for the entered text and selected voice, or '' if the text is empty.
+	 */
+	buildSayUrl() {
+		const text = ModuleRHVoice.$formObj.form('get value', 'text');
+		if (!text || text.trim() === '') {
+			return '';
+		}
+		const voice = ModuleRHVoice.$formObj.form('get value', 'voice');
+		const queryParams = new URLSearchParams({
+			text,
+			voice,
+		}).toString();
+		return `/pbxcore/api/rhvoice/say?${queryParams}`;
+	},
+	/**
+	 * Reads the list of already installed voices passed from the controller.
+	 */
+	readInstalledVoices() {
+		try {
+			return JSON.parse($('#rhvoice-installed-voices').val() || '[]');
+		} catch (e) {
+			return [];
+		}
+	},
+	/**
+	 * Marks installed voices with a check icon directly in the dropdown items.
+	 */
+	decorateDropdown() {
+		$('#modulerh-voice-form .library-type-select .menu .item').each(function () {
+			const $item = $(this);
+			const value = $item.attr('data-value');
+			const installed = ModuleRHVoice.installedVoices.indexOf(value) !== -1;
+			const hasMark = $item.find('i.rhv-installed-mark').length > 0;
+			if (installed && !hasMark) {
+				$item.prepend('<i class="check green icon rhv-installed-mark"></i>');
+			} else if (!installed && hasMark) {
+				$item.find('i.rhv-installed-mark').remove();
+			}
+		});
+	},
+	/**
+	 * Updates the download button / status depending on whether the selected voice is installed.
+	 */
+	updateVoiceState() {
+		const voice = ModuleRHVoice.$formObj.form('get value', 'voice');
+		const $btn = $('#download-voice-button');
+		const $status = $('#download-voice-status');
+		if (!voice) {
+			$btn.addClass('disabled');
+			$status.html('');
+			return;
+		}
+		if (ModuleRHVoice.installedVoices.indexOf(voice) !== -1) {
+			$btn.addClass('disabled').removeClass('loading');
+			$status.html(`<i class="check green icon"></i>${globalTranslate.modulerh_voiceInstalled}`);
+		} else {
+			$btn.removeClass('disabled loading');
+			$status.html(`<span style="color:#767676;">${globalTranslate.modulerh_voiceNotInstalled}</span>`);
+		}
+	},
+	/**
+	 * Human-readable label for a download state.
+	 */
+	stateLabel(state) {
+		switch (state) {
+			case 'queued':
+			case 'downloading':
+				return globalTranslate.modulerh_voiceDownloading;
+			case 'extracting':
+				return globalTranslate.modulerh_voiceExtracting;
+			case 'installing':
+				return globalTranslate.modulerh_voiceInstalling;
+			default:
+				return '';
+		}
+	},
+	/**
+	 * Updates the progress bar state.
+	 */
+	setProgress(state, percent, detail) {
+		let label = ModuleRHVoice.stateLabel(state);
+		if (detail) {
+			label += ` — ${detail}`;
+		}
+		// Ставим ширину бара напрямую, без зависимости от Semantic UI progress-компонента.
+		$('#download-voice-progress .bar').css('width', `${percent}%`);
+		$('#download-voice-progress-label').text(label);
+	},
+	/**
+	 * Reflects a failed download in the UI.
+	 */
+	downloadFailed() {
+		$('#download-voice-button').removeClass('loading disabled');
+		$('#download-voice-progress').hide();
+		$('#download-voice-status').html(`<i class="times red icon"></i>${globalTranslate.modulerh_voiceDownloadFailed}`);
+	},
+	/**
+	 * Starts an asynchronous voice download and begins polling its progress.
+	 */
+	downloadSelectedVoice() {
+		const voice = ModuleRHVoice.$formObj.form('get value', 'voice');
+		if (!voice || ModuleRHVoice.installedVoices.indexOf(voice) !== -1) {
+			return;
+		}
+		$('#download-voice-button').addClass('loading disabled');
+		$('#download-voice-status').html('');
+		$('#download-voice-progress').show();
+		ModuleRHVoice.setProgress('queued', 1, '');
+		$.api({
+			url: '/pbxcore/api/modules/ModuleRHVoice/download-voice',
+			on: 'now',
+			method: 'GET',
+			data: { voice },
+			successTest(response) {
+				return Object.keys(response).length > 0 && response.result === true;
+			},
+			onSuccess() {
+				ModuleRHVoice.pollProgress(voice);
+			},
+			onFailure() {
+				ModuleRHVoice.downloadFailed();
+			},
+			onError() {
+				ModuleRHVoice.downloadFailed();
+			},
+		});
+	},
+	/**
+	 * Polls the download progress until the voice is installed or an error occurs.
+	 */
+	pollProgress(voice) {
+		$.api({
+			url: '/pbxcore/api/modules/ModuleRHVoice/voice-progress',
+			on: 'now',
+			method: 'GET',
+			data: { voice },
+			successTest(response) {
+				return Object.keys(response).length > 0 && response.result === true;
+			},
+			onSuccess(response) {
+				const st = response.data || {};
+				const state = st.state || 'idle';
+				const percent = st.percent || 0;
+				if (state === 'done') {
+					if (ModuleRHVoice.installedVoices.indexOf(voice) === -1) {
+						ModuleRHVoice.installedVoices.push(voice);
+					}
+					ModuleRHVoice.setProgress('installing', 100, '');
+					$('#download-voice-button').removeClass('loading');
+					ModuleRHVoice.decorateDropdown();
+					ModuleRHVoice.updateVoiceState();
+					$('#download-voice-status').html(`<i class="check green icon"></i>${globalTranslate.modulerh_voiceDownloadOk}`);
+					setTimeout(() => {
+						$('#download-voice-progress').hide();
+					}, 1500);
+					return;
+				}
+				if (state === 'error') {
+					ModuleRHVoice.downloadFailed();
+					return;
+				}
+				ModuleRHVoice.setProgress(state, percent, st.message || '');
+				setTimeout(() => {
+					ModuleRHVoice.pollProgress(voice);
+				}, 1000);
+			},
+			onFailure() {
+				ModuleRHVoice.downloadFailed();
+			},
+			onError() {
+				ModuleRHVoice.downloadFailed();
+			},
 		});
 	},
 	/**

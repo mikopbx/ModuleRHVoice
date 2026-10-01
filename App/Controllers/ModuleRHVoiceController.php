@@ -9,6 +9,7 @@ namespace Modules\ModuleRHVoice\App\Controllers;
 use MikoPBX\AdminCabinet\Controllers\BaseController;
 use MikoPBX\Modules\PbxExtensionUtils;
 use Modules\ModuleRHVoice\App\Forms\ModuleRHVoiceForm;
+use Modules\ModuleRHVoice\Lib\VoiceManager;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 
 class ModuleRHVoiceController extends BaseController
@@ -44,6 +45,11 @@ class ModuleRHVoiceController extends BaseController
         if ($settings === null) {
             $settings = new ModuleRHVoice();
         }
+
+        // Список уже установленных голосов — для индикации и кнопки докачки.
+        $manager = new VoiceManager($this->moduleDir);
+        // Volt в MikoPBX не экранирует {{ }}, поэтому экранируем JSON для безопасной вставки в value="...".
+        $this->view->installedVoices = htmlspecialchars(json_encode($manager->getInstalledVoices()), ENT_QUOTES);
 
         $this->view->form = new ModuleRHVoiceForm($settings);
         $this->view->pick("{$this->moduleDir}/App/Views/index");

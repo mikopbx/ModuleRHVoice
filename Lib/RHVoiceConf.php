@@ -17,6 +17,7 @@ use MikoPBX\Modules\Config\ConfigClass;
 use MikoPBX\Modules\PbxExtensionUtils;
 use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
 use Modules\ModuleRHVoice\bin\AmiConfClient;
+use Modules\ModuleRHVoice\Lib\VoiceManager;
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 
 class RHVoiceConf extends ConfigClass
@@ -125,16 +126,65 @@ class RHVoiceConf extends ConfigClass
     {
         $res    = new PBXApiResult();
         $res->processor = __METHOD__;
-        $action = strtoupper($request['action']);
+        $action  = strtoupper($request['action']);
+        // Параметры запроса приходят во вложенном ключе 'data' (payload getData()),
+        // а сам action — на верхнем уровне сообщения воркера.
+        $data    = (isset($request['data']) && is_array($request['data'])) ? $request['data'] : $request;
+        $voice   = (string)($data['voice'] ?? '');
+        $manager = new VoiceManager($this->moduleDir);
         switch ($action) {
             case 'CHECK':
-                $res->success = !empty($this->getPidContainer());
+                $res->success = is_executable($this->moduleDir.'/rhvoice/bin/'.php_uname('m').'/RHVoice-test');
+                break;
+            case 'VOICES-STATUS':
+                $res->success = true;
+                $res->data    = ['installed' => $manager->getInstalledVoices()];
+                break;
+            case 'DOWNLOAD-VOICE':
+                $this->startVoiceDownload($manager, $voice, $res);
+                break;
+            case 'VOICE-PROGRESS':
+                $res->success = true;
+                $res->data    = $manager->readStatus($voice);
                 break;
             default:
                 $res->success    = false;
                 $res->messages[] = 'API action not found in moduleRestAPICallback ModuleRHVoice';
         }
         return $res;
+    }
+
+    /**
+     * Запуск асинхронной докачки голоса: помечаем статус и стартуем фоновый скрипт.
+     * Сам процесс качает/распаковывает голос и пишет прогресс в статус-файл.
+     *
+     * @param VoiceManager $manager
+     * @param string       $voice Ключ голоса из ModuleRHVoice::VOICE_REPO.
+     * @param PBXApiResult $res   Результат для заполнения.
+     */
+    private function startVoiceDownload(VoiceManager $manager, string $voice, PBXApiResult $res): void
+    {
+        if ($voice === '' || ModuleRHVoice::getVoiceRepo($voice) === '') {
+            $res->success    = false;
+            $res->messages[] = "Unknown voice: $voice";
+            return;
+        }
+        if ($manager->isInstalled($voice)) {
+            $res->success = true;
+            $res->data    = ['voice' => $voice, 'state' => VoiceManager::STATE_DONE, 'percent' => 100];
+            return;
+        }
+
+        // Начальный статус до старта фонового процесса, чтобы поллинг сразу видел прогресс.
+        $manager->writeStatus($voice, VoiceManager::STATE_QUEUED, 1, '');
+
+        $phpPath = Util::which('php');
+        Processes::mwExecBg(
+            "$phpPath -f ".escapeshellarg($this->moduleDir.'/bin/voiceDownloader.php').' '.escapeshellarg($voice)
+        );
+
+        $res->success = true;
+        $res->data    = ['voice' => $voice, 'state' => VoiceManager::STATE_QUEUED, 'percent' => 1];
     }
 
 
@@ -145,14 +195,10 @@ class RHVoiceConf extends ConfigClass
      */
     public function onAfterModuleEnable(): void
     {
-        if(!empty($this->getPidContainer())){
-            return;
-        }
+        // Нативный RHVoice не требует фонового сервиса — синтез выполняется по требованию.
+        // Перезапускаем cron, чтобы поднялись задачи модуля и AMI-воркер.
         $cron = new CronConf();
         $cron->reStart();
-        $settings = ModuleRHVoice::findFirst();
-        $binDir     = $this->getBinDir();
-        Processes::mwExecBg( "$binDir/".'docker run -d --name=rhvoice-rest --rm -p '.$settings->local_port.':8080 ghcr.io/aculeasis/rhvoice-rest:latest');
     }
 
     /**
@@ -173,54 +219,20 @@ class RHVoiceConf extends ConfigClass
      */
     public function onAfterModuleDisable(): void
     {
-        $binDir = $this->getBinDir();
-        $pid = $this->getPidContainer();
-        if(!empty($pid)){
-            Processes::mwExec("$binDir/".'docker stop '.$pid);
-        }
+        // Фоновых сервисов нет — останавливать нечего.
     }
 
     /**
-     * Возвращает идентификатор контейнера Docker.
-     * @return string
-     */
-    private function getPidContainer():string{
-        $binDir = $this->getBinDir();
-        $grep   = Util::which('grep');
-        $busybox   = Util::which('busybox');
-        Processes::mwExec("$binDir/"."docker ps | $grep aculeasis/rhvoice-rest | $busybox awk  '{ print $1}'", $out);
-        return implode('', $out);
-    }
-
-    /**
-     * @return string
-     */
-    private function getBinDir():string{
-        return dirname($this->moduleDir) .DIRECTORY_SEPARATOR.'ModuleDocker'. DIRECTORY_SEPARATOR . 'bin';
-    }
-
-    /**
-     *
+     * Периодическая проверка (safeScript): при выключенном модуле гасим AMI-воркер.
      */
     public function checkStart():void{
-
-        $moduleEnabled  = PbxExtensionUtils::isEnabled($this->moduleUniqueId);
-        $workerPid = Processes::getPidOfProcess(AmiConfClient::class);
+        $moduleEnabled = PbxExtensionUtils::isEnabled($this->moduleUniqueId);
         if($moduleEnabled === true){
-            $this->onAfterModuleEnable();
-//            $am       = Util::getAstManager();
-//            $res_ping = $am->pingAMIListener(Text::camelize("ping_".AmiConfClient::class, '\\'));
-//            if (false === $res_ping) {
-//                if(!empty($workerPid)){
-//                    shell_exec("kill -9 $workerPid");
-//                }
-//                Processes::mwExecBg("$this->moduleDir/bin/AmiConfClient.php start");
-//            }
-        }else{
-            if(!empty($workerPid)){
-                shell_exec("kill $workerPid");
-            }
-            $this->onAfterModuleDisable();
+            return;
+        }
+        $workerPid = Processes::getPidOfProcess(AmiConfClient::class);
+        if(!empty($workerPid)){
+            shell_exec("kill $workerPid");
         }
     }
 }

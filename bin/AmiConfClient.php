@@ -85,27 +85,64 @@ class AmiConfClient extends WorkerBase
             '1');
     }
 
-    public static function tts($text):string
+    /**
+     * Синтез речи нативным движком RHVoice (без Docker/REST).
+     * Возвращает путь к WAV-файлу без расширения (для Asterisk Playback).
+     *
+     * @param string $text  Текст для озвучивания.
+     * @param string $voice Голос (пусто — берётся из настроек модуля).
+     *
+     * @return string
+     */
+    public static function tts(string $text, string $voice = ''):string
     {
-        $dir = dirname(__DIR__).'/db/media';
+        $moduleDir = dirname(__DIR__);
+        $dir       = $moduleDir.'/db/media';
         Util::mwMkdir($dir);
-        $filename = md5($text);
-        $fullName   = "$dir/{$filename}_src.wav";
-        $n_filename = "$dir/{$filename}.wav";
-        $port = '';
+
         /** @var ModuleRHVoice $settings */
         $settings = ModuleRHVoice::findFirst();
-        if($settings){
-            $port = $settings->local_port;
+        if(empty($voice)){
+            $voice = ($settings && !empty($settings->voice)) ? $settings->voice : 'aleksandr';
         }
-        if(empty($port)){
-            $port='7788';
-        }
+        $rate = ($settings && $settings->rate !== null && $settings->rate !== '') ? (int)$settings->rate : 40;
+
+        // Ключ кэша учитывает голос и темп, чтобы файлы не смешивались.
+        $filename   = md5($voice.'_'.$rate.'_'.$text);
+        $fullName   = "$dir/{$filename}_src.wav";
+        $n_filename = "$dir/{$filename}.wav";
+
         if(!file_exists($n_filename)){
-            $url = "http://127.0.0.1:$port/say?format=wav&text=".rawurlencode($text);
-            shell_exec("/usr/bin/curl -o $fullName '$url'");
-            $soxPath      = Util::which('sox');
-            Processes::mwExec("{$soxPath} -v 0.99 -G '{$fullName}' -c 1 -r 8000 -b 16 '{$n_filename}'");
+            $arch   = php_uname('m'); // x86_64 | aarch64 — выбираем бинарник под архитектуру
+            $rhvDir = $moduleDir.'/rhvoice';
+            $bin    = "$rhvDir/bin/$arch/RHVoice-test";
+
+            // Настройка темпа модуля 0..100 (50 — норма) повторяет логику rhvoice-rest:
+            // absolute_rate = rate/50 - 1, далее переводим в относительный множитель для CLI.
+            $absolute = max(0, min(100, $rate)) / 50.0 - 1.0;
+            $percent  = (int)round(pow(3.0, $absolute) * 100);
+
+            $txtFile = "$dir/{$filename}.txt";
+            file_put_contents($txtFile, $text);
+
+            $env = 'LD_LIBRARY_PATH='.escapeshellarg("$rhvDir/lib/$arch")
+                .' RHVOICE_DATA_PATH='.escapeshellarg("$rhvDir/data")
+                .' RHVOICE_CONFIG_PATH='.escapeshellarg("$rhvDir/etc");
+
+            // RHVoice выдаёт 24 кГц mono 16-bit PCM.
+            Processes::mwExec(
+                "$env ".escapeshellarg($bin)
+                ." -p ".escapeshellarg($voice)
+                ." -r ".escapeshellarg((string)$percent)
+                ." -i ".escapeshellarg($txtFile)
+                ." -o ".escapeshellarg($fullName)
+            );
+            @unlink($txtFile);
+
+            // Приводим к формату Asterisk: 8 кГц mono 16-bit.
+            $soxPath = Util::which('sox');
+            Processes::mwExec("{$soxPath} -v 0.99 -G ".escapeshellarg($fullName)." -c 1 -r 8000 -b 16 ".escapeshellarg($n_filename));
+            @unlink($fullName);
         }
 
         return Util::trimExtensionForFile($n_filename);

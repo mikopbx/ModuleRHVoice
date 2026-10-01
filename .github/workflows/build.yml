@@ -1,0 +1,64 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: mikopbx/.github-workflows/.github/workflows/extension-publish.yml@master
+    with:
+      initial_version: "1.0"
+      # Build the native RHVoice engine for amd64 and arm64, then assemble the
+      # rhvoice/ bundle (per-arch bin+lib, shared data/languages + preloaded voice, etc).
+      # The archive action zips the working module/ dir, so everything placed here
+      # ends up in the published package.
+      custom_build_steps: |
+        cd "$GITHUB_WORKSPACE/module"
+
+        RHV="rhvoice"
+        BUILD_DIR=".github/build"
+        rm -rf "$RHV"
+        mkdir -p "$RHV/bin" "$RHV/lib" "$RHV/data" "$RHV/etc"
+
+        # Enable arm64 emulation for cross-platform docker builds.
+        docker run --privileged --rm tonistiigi/binfmt --install arm64 >/dev/null 2>&1 || true
+
+        first=1
+        for pair in "linux/amd64 x86_64" "linux/arm64 aarch64"; do
+          set -- $pair
+          PLATFORM="$1"; ARCH="$2"
+          IMG="rhvoice-builder-$ARCH"
+          CACHE="$RUNNER_TEMP/docker-cache-$IMG.tar"
+
+          if [ "$CACHE_HIT" = "true" ] && [ -f "$CACHE" ]; then
+            echo "Loading cached image $IMG"
+            docker load < "$CACHE"
+          else
+            echo "Building $IMG for $PLATFORM"
+            docker build --platform "$PLATFORM" --progress=plain \
+              -t "$IMG" -f "$BUILD_DIR/Dockerfile" "$BUILD_DIR"
+            docker save "$IMG" > "$CACHE"
+          fi
+
+          cid=$(docker create --platform "$PLATFORM" "$IMG")
+          mkdir -p "$RHV/bin/$ARCH" "$RHV/lib/$ARCH"
+          docker cp "$cid:/out/bin/." "$RHV/bin/$ARCH/"
+          docker cp "$cid:/out/lib/." "$RHV/lib/$ARCH/"
+          # Arch-independent payload (data + config) only needs to be copied once.
+          if [ "$first" = "1" ]; then
+            docker cp "$cid:/out/data/." "$RHV/data/"
+            docker cp "$cid:/out/etc/."  "$RHV/etc/"
+            first=0
+          fi
+          docker rm "$cid" >/dev/null
+          chmod +x "$RHV/bin/$ARCH/RHVoice-test"
+        done
+
+        echo "Assembled rhvoice bundle:"
+        find "$RHV" -maxdepth 2 -mindepth 1 | sort
+        du -sh "$RHV" "$RHV/bin/"* "$RHV/lib/"* "$RHV/data" 2>/dev/null || true
+    secrets: inherit

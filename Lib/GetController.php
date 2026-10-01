@@ -8,48 +8,38 @@
 
 namespace Modules\ModuleRHVoice\Lib;
 use MikoPBX\PBXCoreREST\Controllers\BaseController;
-use GuzzleHttp\Client;
 use Throwable;
-use Modules\ModuleRHVoice\Models\ModuleRHVoice;
+use Modules\ModuleRHVoice\bin\AmiConfClient;
 
 class GetController extends BaseController
 {
     /**
-     * Скачивание записи разговора.
-     * /pbxcore/api/cdr/records MIKO AJAM
-     * curl -o test.wav 'http://127.0.0.1/pbxcore/api/rhvoice/say?text=%D0%9F%D1%80%D0%B8%D0%B2%D0%B5%D1%82&voice=vitaliy-ng&'
+     * Синтез речи нативным RHVoice и отдача WAV.
+     * /pbxcore/api/rhvoice/say
+     * По умолчанию отдаётся inline (для прослушивания в браузере);
+     * с параметром dl=1 — как вложение (скачивание файла).
+     * curl -o test.wav 'http://127.0.0.1/pbxcore/api/rhvoice/say?text=%D0%9F%D1%80%D0%B8%D0%B2%D0%B5%D1%82&voice=vitaliy-ng&dl=1'
      */
     public function recordsAction(): void
     {
         try {
-            $settings = ModuleRHVoice::findFirst();
-            if(!$settings || empty($settings->local_port)){
-                $this->sendError(503);
+            $text  = (string)$this->request->get('text');
+            $voice = (string)$this->request->get('voice');
+            if ($text === '') {
+                $this->sendError(400);
                 return;
             }
-            $client = new Client([
-                'base_uri' => 'http://127.0.0.1:'.$settings->local_port,
-                'timeout'  => 10.0,
-            ]);
-            $queryParams = [
-                'text'   => $this->request->get('text'),
-                'voice'  => $this->request->get('voice'),
-                'format' => 'wav',
-                'rate'   => $settings->rate,
-            ];
-            $response = $client->get('/say', [
-                'query' => $queryParams,
-            ]);
-            if ($response->getStatusCode() === 200) {
-                $stream = $response->getBody();
-                $resource = $stream->detach();
-                header('Content-Type: audio/wav');
-                header('Content-Disposition: attachment; filename="output.wav"');
-                fpassthru($resource);
-                $stream->close();
-            } else {
+            $wav = AmiConfClient::tts($text, $voice) . '.wav';
+            if (!file_exists($wav)) {
                 $this->sendError(502);
+                return;
             }
+            $disposition = ((string)$this->request->get('dl') === '1') ? 'attachment' : 'inline';
+            header('Content-Type: audio/wav');
+            header('Accept-Ranges: bytes');
+            header('Content-Length: '.filesize($wav));
+            header('Content-Disposition: '.$disposition.'; filename="output.wav"');
+            readfile($wav);
         } catch (Throwable $e) {
             $this->sendError(501, $e->getMessage());
         }

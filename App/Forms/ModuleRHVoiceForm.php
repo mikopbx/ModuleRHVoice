@@ -23,11 +23,6 @@ class ModuleRHVoiceForm extends Form
 
         $this->add(new Hidden('id', ['value' => $entity->id]));
         $this->add(new TextArea('text', ['rows' => 3]));
-        $this->add(new Numeric('local_port', [
-            'maxlength'    => 5,
-            'style'        => 'width: 120px;',
-            'defaultValue' => 8080,
-        ]));
 
         $this->add(new Numeric('rate', [
             'maxlength'    => 3,
