@@ -3,7 +3,7 @@
   "moduleUniqueID":"ModuleRHVoice",
   "support_email": "help@miko.ru",
   "version": "%ModuleVersion%",
-  "min_pbx_version": "2024.1.42",
+  "min_pbx_version": "2026.2.118",
   "release_settings": {
     "publish_release": true,
     "changelog_enabled": true,

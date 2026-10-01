@@ -77,7 +77,7 @@ class RHVoiceConf extends ConfigClass
             "    same => n,EndWhile" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${bridgePeer}\" != \"\${CHANNEL}\" && \"\${bridgePeer:0:5}\" != \"Local\" && \"\${bridgePeer}x\" != \"x\" ]?ChannelRedirect(\${bridgePeer},\${CONTEXT},\${EXTEN},\${PRIORITY}))" . PHP_EOL .
             "    same => n,ExecIf(\$[\"\${CHANNEL(channeltype)}\" == \"Local\"]?Hangup())" . PHP_EOL .
-            "    same => n,AGI(cdr_connector.php,meetme_dial)" . PHP_EOL .
+            "    same => n,AGI(meetme_dial.php)" . PHP_EOL .
             "    same => n,Answer()" . PHP_EOL .
             "    same => n,Gosub(set-answer-state,\${EXTEN},1)" . PHP_EOL .
             "    same => n,Set(CHANNEL(hangup_handler_wipe)=hangup_handler_meetme,s,1)" . PHP_EOL .
