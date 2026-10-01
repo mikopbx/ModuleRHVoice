@@ -10,6 +10,7 @@ namespace Modules\ModuleRHVoice\App\Forms;
 
 use Modules\ModuleRHVoice\Models\ModuleRHVoice;
 use Phalcon\Forms\Element\Select;
+use Phalcon\Forms\Element\Text;
 use Phalcon\Forms\Element\TextArea;
 use Phalcon\Forms\Form;
 use Phalcon\Forms\Element\Numeric;
@@ -28,6 +29,24 @@ class ModuleRHVoiceForm extends Form
             'maxlength'    => 3,
             'style'        => 'width: 120px;',
             'defaultValue' => 40,
+        ]));
+
+        $this->add(new Text('enter_prefix', [
+            'maxlength'    => 5,
+            'style'        => 'width: 120px;',
+            'value'        => $entity->enter_prefix ?: '**',
+        ]));
+
+        $this->add(new Text('admin_prefix', [
+            'maxlength'    => 5,
+            'style'        => 'width: 120px;',
+            'value'        => $entity->admin_prefix ?: '***',
+        ]));
+
+        $this->add(new Numeric('conf_number_length', [
+            'maxlength'    => 2,
+            'style'        => 'width: 120px;',
+            'value'        => $entity->conf_number_length ?: 4,
         ]));
 
         $library = new Select(

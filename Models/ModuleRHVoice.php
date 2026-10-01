@@ -113,6 +113,24 @@ class ModuleRHVoice extends ModulesModelsBase
     public $rate = "40";
 
     /**
+     * Префикс входа в конференцию (например, **).
+     * @Column(type="string", default="**", nullable=true)
+     */
+    public $enter_prefix = "**";
+
+    /**
+     * Префикс администрирования конференции (например, ***).
+     * @Column(type="string", default="***", nullable=true)
+     */
+    public $admin_prefix = "***";
+
+    /**
+     * Длина номера динамической конференции (число знаков после префикса).
+     * @Column(type="integer", default="4", nullable=true)
+     */
+    public $conf_number_length = 4;
+
+    /**
      * Returns dynamic relations between module models and common models
      * MikoPBX check it in ModelsBase after every call to keep data consistent
      *

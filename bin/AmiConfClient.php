@@ -78,10 +78,13 @@ class AmiConfClient extends WorkerBase
         // (CallerIDNum может быть переопределён именем комнаты, напр. Conference_Room).
         // alertScript ищет экстеншн по этому номеру и берёт его callerid.
         $callerNum = $parameters['CallerIDName'] ?? '';
+        // Префикс входа должен совпадать с настройкой (генератор диалплана строит шаблон по нему).
+        $settings    = ModuleRHVoice::findFirst();
+        $enterPrefix = ($settings && !empty($settings->enter_prefix)) ? $settings->enter_prefix : '**';
         try {
             // Типы важны: в ядре Originate() — ?int $priority/$timeout и bool $async.
             $this->am->Originate(
-                "Local/**{$parameters['Conference']}@internal/n",
+                "Local/{$enterPrefix}{$parameters['Conference']}@internal/n",
                 null,                               // exten
                 null,                               // context
                 null,                               // priority (?int)

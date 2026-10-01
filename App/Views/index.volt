@@ -22,6 +22,19 @@
         {{ form.render('rate') }}
     </div>
 
+    <div class="four wide field">
+        <label>{{ t._('modulerh_enterPrefix') }}</label>
+        {{ form.render('enter_prefix') }}
+    </div>
+    <div class="four wide field">
+        <label>{{ t._('modulerh_adminPrefix') }}</label>
+        {{ form.render('admin_prefix') }}
+    </div>
+    <div class="four wide field">
+        <label>{{ t._('modulerh_confNumberLength') }}</label>
+        {{ form.render('conf_number_length') }}
+    </div>
+
     <div class="ten wide field">
         <label>{{ t._('modulerh_text') }}</label>
         {{ form.render('text') }}

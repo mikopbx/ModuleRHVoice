@@ -59,9 +59,20 @@ class RHVoiceConf extends ConfigClass
      */
     public function extensionGenInternal(): string
     {
-        $conf = "exten => _**XXXX,1,NoOp(---)" . PHP_EOL .
+        // Настройки комбинаций и длины номера конференции.
+        $settings    = ModuleRHVoice::findFirst();
+        $enterPrefix = ($settings && $settings->enter_prefix !== null && $settings->enter_prefix !== '') ? $settings->enter_prefix : '**';
+        $adminPrefix = ($settings && $settings->admin_prefix !== null && $settings->admin_prefix !== '') ? $settings->admin_prefix : '***';
+        $len         = ($settings && (int)$settings->conf_number_length > 0) ? (int)$settings->conf_number_length : 4;
+
+        $digits     = str_repeat('X', $len);
+        $enterExten = '_'.$enterPrefix.$digits;              // шаблон входа, напр. _**XXXX
+        $adminExten = '_'.$adminPrefix.$digits;              // шаблон администрирования, напр. _***XXXX
+        $num        = '${EXTEN:'.strlen($enterPrefix).'}';   // номер конференции = часть после префикса
+
+        $conf = "exten => $enterExten,1,NoOp(---)" . PHP_EOL .
             "    same => n,ExecIf(\$[ \"\${alert}\" == \"1\" ]?Goto(start_conf))" . PHP_EOL .
-            "    same => n,Set(dbPin=\${DB(CB_PINS/\${EXTEN:2})})" . PHP_EOL .
+            "    same => n,Set(dbPin=\${DB(CB_PINS/$num)})" . PHP_EOL .
             "    same => n,GotoIf(\$[ \"\${dbPin}\" == \"\" ]?skip_pin)" . PHP_EOL .
             "    same => n,AGI($this->moduleDir/agi-bin/alertScript.php,enter_pin)" . PHP_EOL .
             "    same => n,Read(pin,beep,3)" . PHP_EOL .
@@ -89,10 +100,10 @@ class RHVoiceConf extends ConfigClass
             "    same => n,Set(CONFBRIDGE(user,talk_detection_events)=yes)" . PHP_EOL .
             "    same => n(start_conf),Set(CONFBRIDGE(user,quiet)=yes)" . PHP_EOL .
             "    same => n,Set(CONFBRIDGE(user,music_on_hold_when_empty)=yes)" . PHP_EOL .
-            "    same => n,ConfBridge(\${EXTEN:2})" . PHP_EOL .
+            "    same => n,ConfBridge($num)" . PHP_EOL .
             "    same => n,Hangup()" . PHP_EOL .
             PHP_EOL .
-            "exten => _***XXXX,1,NoOp()" . PHP_EOL .
+            "exten => $adminExten,1,NoOp()" . PHP_EOL .
             "    same => n,AGI($this->moduleDir/agi-bin/alertScript.php,menu)";
         return $conf;
     }
